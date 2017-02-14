@@ -1,13 +1,19 @@
-import React from "react";
+import * as React from "react";
+import * as nodes from "../types/nodes";
+import { ConceptView } from "./common/ConceptView";
 import "../stylesheets/main.scss";
 
-// app component
-export default class App extends React.Component {
+// App component
+export class App extends React.Component 
+{
   // render
   render() {
+    // show a progress bar while we wait for the app to load
+
+    // render
     return (
-      <div className="container">
-        {this.props.children}
+      <div className="main">
+        {children}
       </div>
     );
   }

@@ -1,0 +1,227 @@
+Use cases:
+
+What should happen 
+
+  What should happen to a node when its same-named nodes elsewhere...
+
+    have their text changed?
+    are deleted?
+    are moved / indented / unindented?
+
+What should happen to a tree of nodes that has been auto-created from the main view when its root in the main view is deleted?
+
+Should there be a concept of a "master" and a "slave"?
+
+If there is not, do things just get "too weird".
+
+
+Example:
+
+  main view
+    A
+      B
+      C
+      D
+
+  A (autoroot)
+    B
+    C
+    D
+
+We delete main view / A.
+
+But it will auto-repopulate later, based on the A autoroot.
+
+First question: Should it really do that?
+
+Should an automatically created tree really trigger auto creation in the main view?
+
+  Well, "standard" nodes added within the autocreated tree should be reflected elsewhere
+  But only if parrallel trees exist.
+  So does that mean we should only automatically add clones of nodes where isRelatedChild=false?
+    Maybe - but we still need to recurse through the whole tree.
+
+  Should we automatically delete previously cloned nodes & trees (isRelatedChild=true), if their origin no long exists?
+  Just delete any autocreated nodes (that don't have standard nodes hanging off of them), then allow autoadd to add them back?
+  Maybe we can delete nodes while auto-adding under some conditions.
+
+
+    Good question. Right now though, we don't track the "origin" of such nodes. But we could.
+    Should we? Or should we 
+    This also opens up the problem of renamed nodes, which are pretty problematic right now.
+    Every rename results in an orphaned "fossil" tree whose origins no longer sync.
+
+Should it trigger it in other autonodes?
+
+So conceptually, we need to re-think things.
+
+The data model is clearly insufficient.
+
+What should the model be?
+
+Should every clone have one "origin" node on which it models itself?
+
+We want reflection to go two ways... The origin reflects updates made to clones...
+
+Should "autocreation" be the model, or should it be more like nodes actually existing in two places?
+
+If we had a model where a node had multiple childId arrays... One per context...
+
+node
+{
+  text: "Requirements",
+  contexts:
+  {
+    "Graphs-Features": 
+    {
+      childIds: [1,4,6]
+    },
+    "Tables-Features": 
+    {
+      childIds: [2,3,9]
+    }
+  }
+}
+
+Then the question becomes, whether there is a "master-slave" relationship between any of these...
+
+We would still need to do auto-creation of children upon loading views and upon node updated (on blur).
+
+But we would not need to auto-create entire nodes -- just update references within the same node object.
+
+Well, across node objects when recursing through trees...
+
+But the childIds would no longer make sense... They no longer reference unique nodes.
+
+And then we start looking at a model similar to an array of common "concept" strings.
+
+Which felt pretty strange... Watching text change simultaneously in multiple locations, but before we were really "done".
+
+It seems like the updates really shouldn't happen until on-blur.
+
+Which means it needs to be a "synchronization" process between disparate trees.
+
+So the data model we have now is probably close to right.
+
+
+
+
+======================
+
+For a node N, of Concept type C, auto-add children (that are not already present) as follows:
+
+1) Auto-add children of any same-named node IFF either ancestor path is a subset of the other (they share a common ancestor sub-path leading up the node in question). 
+Note that an ancestor path is ordered such that it starts from the node in question and works its way upward toward the root.
+
+2) If N has no direct children, auto-add each "root" and subtree that contain N as descendants.
+
+Rule 1 can be suppressed by un-checking the display option: "Automatically add related children."
+Rule 2 can be suppressed by un-checking the display option: "Automatically add related sub-trees."
+
+Both these are checked by default.
+
+Ancestor path defined:
+
+  A
+    B
+      C
+        D
+
+For example, D's ancestor path is: D-C-B-A
+
+Example: For this tree...
+
+      X
+        A
+          M
+          N
+         [P]
+         [D]
+         [G]
+         [H]         
+
+      Y
+        A
+          B
+          C
+         [P]
+         [D]
+
+      A
+        P
+        D
+       [M]
+       [N]
+       [B]
+       [C]
+
+      Z
+        X
+          A
+           [M]
+           [N]
+           [P]
+           [D]
+            G
+            H
+
+Node A has the following ancestor paths:
+
+A-X
+A-Y
+A
+A-X-Z
+
+A-X should receive A-Y native nodes? No. There is no common subpath.
+A-X should receive A native nodes? Yes. A-X contains A.
+A-X should receive A-X-Z native nodes? Yes. A-X-Z contains A-X.
+
+A-Y should receive A-X native nodes? No. There is no common subpath.
+A-Y should receive A native nodes? Yes. Ditto.
+A-Y should receive A-X-Z native nodes? No. You get the idea, hopefully.
+
+A should receive A-X native nodes? Yes.
+A should receive A-Y native nodes? Yes.
+A should receive A-X-Z native nodes? Yes.
+
+A-X-Z should receive A-X native nodes? Yes.
+A-X-Z should receive A-Y native nodes? No.
+A-X-Z should receive A native nodes? Yes.
+
+Add children from a same-named node, IFF one ancestor path contains a subset of the other (starting from the node in question).
+
+
+===========
+
+If we add a new root of concept type "Reqs", then it is "N". All the R requirements are added because they all appear under 
+nodes of Concept type Reqs (C). All the Auds are added to the R's for the same reason. Under each Auds, 
+
+root: Reqs
+
+Reqs
+  R1
+    Auds
+      Oms (Reqs-R1-Auds)
+      Pms
+  R2
+    Auds
+      Dms
+      Pms
+  R3
+    Auds
+      Qms
+      Oms
+
+
+
+
+Tables
+  Reqs
+    R3
+      Auds
+        Qms
+        Oms
+
+
+
+

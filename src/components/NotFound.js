@@ -1,4 +1,5 @@
-import React from "react";
+import * as React from "react";
+
 
 // Not found page component
 export default class NotFound extends React.Component {

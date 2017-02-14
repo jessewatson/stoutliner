@@ -1,6 +1,6 @@
 // http://webpack.github.io/docs/configuration.html
 // http://webpack.github.io/docs/webpack-dev-server.html
-var app_root = 'src_users'; // the app root folder: src, src_users, etc
+var app_root = 'src'; // the app root folder: src, src_users, etc
 var path = require('path');
 var CleanWebpackPlugin = require('clean-webpack-plugin');
 
@@ -8,7 +8,7 @@ module.exports = {
   app_root: app_root, // the app root folder, needed by the other webpack configs
   entry: [
     // http://gaearon.github.io/react-hot-loader/getstarted/
-    'webpack-dev-server/client?http://localhost:8080',
+    'webpack-dev-server/client?http://localhost:8000',
     'webpack/hot/only-dev-server',
     'babel-polyfill',
     __dirname + '/' + app_root + '/index.js',
@@ -20,6 +20,11 @@ module.exports = {
   },
   module: {
     loaders: [
+      {
+        test: /\.ts(x?)$/,
+        loader: 'babel-loader?presets[]=react!ts-loader',
+        exclude: /node_modules/,
+      },
       {
         test: /\.js$/,
         loader: 'babel',
@@ -39,11 +44,8 @@ module.exports = {
   devServer: {
     contentBase: __dirname + '/public',
   },
-  plugins: [
-    new CleanWebpackPlugin(['css/main.css', 'js/bundle.js'], {
-      root: __dirname + '/public',
-      verbose: true,
-      dry: false, // true for simulation
-    }),
-  ],
+  resolve: {
+    // Add `.ts` and `.tsx` as a resolvable extension.
+    extensions: ['', '.ts', '.tsx', '.js','.scss','.css']
+  },
 };

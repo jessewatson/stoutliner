@@ -1,0 +1,199 @@
+----------------------------------
+TODOS
+----------------------------------
+
+Get concepts auto-displaying
+
+Get concepts clickable
+
+x We lose our focused node after collapsing and expanding a higher branch containing it
+
+x Indenting under collapsed nodes such that the node goes into the collapsed node should expand the (new) parent node
+
+x Undos that have to expand the tree don't focus the right node
+
+Redo focusing seems to be one input behind for node addition / deletion redos
+
+Get rid of the bootstrap stylesheets.
+
+x Undo and redo over collapsed sections should auto expand those nodes
+
+x Deletion of nodes - undo/redo node focusing is off by one after the first undo cycle
+
+x Line inserts don't work (and never worked the way they really should anyway)
+
+REFACTOR to use action creators in place of dispatch like this guy does:
+
+  http://www.mattgreer.org/articles/typescript-react-and-redux/
+  https://github.com/DefinitelyTyped/DefinitelyTyped/issues/6237
+  
+Multi-line nodes don't display properly on reload.
+
+All the nodes are too narrow width-wise (and should probably not be cut off all at the same visual length)
+
+x Key commands like undo / redo are only captured within inputs - should be if any part of the app is focused.
+
+Expand/collapse widget doesn't work if the currently focused node is not within the view port. (We are scrolled above or below it)
+
+x If you shift-select an entire node's contents to clear them, it triggers the node delete function (should just clear it out)
+
+x Indenting a node such that it becomes the child of a collapsed node should expand the node of which its becoming a part
+
+x Cursor should not change to clickable over nodes with no widget
+
+x Hitting enter on a collapsed node DOES add a new child (as it should), but it does not expand the node, which it should
+
+----------------------------------
+INCOMPLETE FEATURES / QUESTIONS:
+----------------------------------
+
+Concept rework
+  Intellisense system remembers previously typed words.
+  Hash symbol can be used to auto-initiate the creation of a concept.
+  #like_this
+  Underscores are converted to spaces, the hash symbol is removed, and the whole phrase is converted to a concept.
+  A concept is displayed like as a read-only block, like an email address in gmail.
+  You can't edit it, just delete it as though it were one character, then start over.
+
+  But what does it mean to have a concept amidst content? Several concepts?
+
+  Do we perform an exclude-filter based on both? Do we attempt a "mixin"?
+
+  Do we even allow such a thing?
+
+  Maybe each node is either a concept node or a content node.
+
+  Yet, I'm still not sure what the use case is for non-concept nodes.
+  It seems like concept nodes should almost be the default.
+  Or maybe they shouldn't need to be a "thing" at all.
+
+  Why not just use autocomplete to promote name sameness?
+
+  So then every node is a concept by nature.
+
+  Except that concepts aren't the same.
+
+  It's really just name coincidence.
+
+
+Cmd-arrow should move nodes
+
+Selection model?
+  shift-arrows across boundaries?
+  drag selection across node boundaries?
+Copy / paste?
+Drag and drop?
+
+If you hit enter at the beginning of an input, should it push the node down one?
+  If in the middle of some text, should it split?
+  If you hit backspace at the beginning of a node's text, but there is still text in the node, should it really delete the node?
+
+x Left arrow at beginning of line should pop cursor up to end of previous line
+  Should it also collapse the node? No.
+
+x Right arrow at end of line should pop cursor to beginning of next line
+
+x Collapse nodes - pretty important
+
+
+----------------------------------
+NEEDED FEATURES
+----------------------------------
+
+x Backspace on empty node to delete nodes
+Pivots!!
+Command-arrow to move nodes
+
+
+----------------------------------
+Design
+----------------------------------
+
+content: [
+  {id: 0, text: "root", isConcept:false},
+  {id: 1, text: "Bar", isConcept:true},
+  {id: 2, text: "Baz", isConcept:true},
+  {id: 3, text: "Baz", isConcept:false}
+]
+
+
+document:
+{
+  nodes: [
+    {id: 0, conceptId:0, childIds: [123,456]},
+    {id: 123, conceptId: 1, childIds: [456,789]},
+    {id: 456, conceptId: 2, childIds: []},
+    {id: 789, conceptId: 3, childIds: []}
+  }
+}
+
+Text in [brackets] is added for me by the system
+
+Features
+  Graphs
+    Requirements
+      R1
+        Audiences
+          Product Managers
+          Dev Managers
+  Tables
+    Requirements
+      R1
+        Audiences
+          Dev Managers
+          Developers
+      R2
+        Audiences
+          Entrepreneurs
+    ["I really like tables!"] is not added here because it was added within the context of R1
+
+  Diagrams
+    Requirements
+      R2
+        Audiences
+          Office Managers
+      R3
+        Audiences
+          Product Managers
+
+Requirements
+  [R1] - sum of all R1s, since there is no limiting context above us
+    [Audiences]
+      [Product Managers]
+      [Dev Managers]
+    [Features]*
+      [Graphs] - we only include features from which R1 descends
+      [Tables]
+        "I really like tables!" (Where should this added text live?)
+  [R2]
+    [Audiences]
+      [Entrepreneurs]
+      [Office Managers]
+    [Features]*
+      [Tables] - we only include features from which R2 descends
+      [Diagrams]
+  [R3]
+    [Audiences]
+      [Product Managers]
+    [Features]*
+      [Diagrams] - we only include features from which R2 descends
+
+* - We include Features here because "Requirements" appears in multiple contexts, so we include nodes directly above Requirements levels, along with their parent node container (Features) for context
+
+"I really like tables" should be associated with contexts specific to Tables + Features + R1 + Requirements
+
+
+Dev Managers
+  [Audiences] (include parent since this is the root context sum of all Audiences - above)
+    Developers
+    Entrepreneurs
+
+
+
+
+
+
+
+
+
+
