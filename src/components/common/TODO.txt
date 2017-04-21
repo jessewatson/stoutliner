@@ -2,45 +2,162 @@
 TODOS
 ----------------------------------
 
-Get concepts auto-displaying
+Preventing cycles and duplicate siblings:
 
-Get concepts clickable
+  Linking of same named nodes should only happen when you actually choose the name from Intellisense
+  And there has to be some indication of this in the menu.
+  Then, we need to NOT show illegal options (that would create cycles or duplicate siblings)
 
-x We lose our focused node after collapsing and expanding a higher branch containing it
+Define children should really be a function that is performed upon insert of a node.
 
-x Indenting under collapsed nodes such that the node goes into the collapsed node should expand the (new) parent node
+The user should decide at node-creation time which "type" of node it is going to be:
 
-x Undos that have to expand the tree don't focus the right node
 
-Redo focusing seems to be one input behind for node addition / deletion redos
+  Just text - "R1 - just text"
 
-Get rid of the bootstrap stylesheets.
+    This should not create a concept, and not link the nodes
 
-x Undo and redo over collapsed sections should auto expand those nodes
+  A standard concept - "R1 - a concept, but not the same as the other R1s"
 
-x Deletion of nodes - undo/redo node focusing is off by one after the first undo cycle
+    This should make a concept, but not link the nodes
 
-x Line inserts don't work (and never worked the way they really should anyway)
+  A reference to the same named concept - "R1 - same as the other R1s - but don't show relationships."
 
-REFACTOR to use action creators in place of dispatch like this guy does:
+    This should create a concept and link the nodes
 
-  http://www.mattgreer.org/articles/typescript-react-and-redux/
-  https://github.com/DefinitelyTyped/DefinitelyTyped/issues/6237
+  A query that displays relationships between nodes - "R1 - same  - please show relationships."
+
+    This should link the nodes and display the junk
+
+  A hyperlink to another node - "Link to the R1 under Graphs"
+
+
+The new define children should be a macro that takes control of node definition and does it for you
+
+  BUT - it also mediates the display of what were once considered ghost nodes.
+
+  We don't want ghost nodes showing up automatically as the default.
+
+  As the user, we want to be able to decide: 
+
+  One type of tree is totally under my control, and the other type tree is automatically derived based on context.
+
+  We may even want to make this a document-by-document decision, where some documents are a totally different type.
+
+  But one thing at a time.
+
+  Ghost nodes are really just "contextually relevant nodes".
+
+  If you turn on "define children" for a tree, and start defining the tree, 
+  you want the system to auto-display "contextually relevant nodes" for each level.
+
+  BIG QUESTION: Should these query / filter / define children trees be ...
+
+    in the actual node structure?
+    or simply in the view model (treeNodes)?
+
+  The problem is that they don't really have nodeRefs.
+
+    Define children lets you arbitrarily choose the next node to be shown.
+
+    Isn't that just programatically building the tree for you, plus showing ghost nodes?
+
+    Not really. According to the demo, they are actually children.
+
+    When you say: "Show children" in the dialog, you are telling it to show:
+
+      Contextually relevant children.
+    
+    These should already have nodeRefs - in fact, it could be more than one nodeRef.
+
+    The problem becomes choosing which one.
+
+      R1 appears under multiple features.
+
+      If I specify "show R1", which nodeRef do I use?
+
+      You would have to create a new one.
+
+      If I specify "show children of R1", I am building an array of nodeRefs...
+      Which nodeRefs do I use?
+
+  Furthermore, if I say simply "Show requirements", and I am under a node that is not a parent, what then?      
+
+    Is that a legit node in my tree structure, or not?
+    Should it be found by other queries?
+
+    No.
+
+    Then that is your answer.
   
-Multi-line nodes don't display properly on reload.
+  We need a way of showing structures without nodeRef relationships between then.
 
-All the nodes are too narrow width-wise (and should probably not be cut off all at the same visual length)
+Invert display may be one exception -- need to think about this.
 
+But the way you turn on "invert display" should be independent of define children.
+
+
+When outdenting a node from a ghost, it becomes native... Should it?
+When "indenting" a node into a ghost, it probably shouldn't become a ghost
+  After all - if you created the node yourself, you want it to stay native.
+
+Rules:
+
+  All nodes that you create yourself are native (black text)
+  Native nodes stay native
+  All nodes created automatically by the system are ghosts (blue text)  
+
+Don't allow the same logical node to wind up as siblings in the same parent or in parent-child relationships
+
+  Prevent indenting or unindenting such that the above is true
+  Prevent Linking such that the above is true
+
+Provide some error feedback when the above is attempted, or we refuse to indent, etc.
+
+Color code linked nodes
+
+Provide a way to unlink nodes
+
+Intellisense!
+
+Ghost nodes should merge identical path portions
+
+Display inverse trees, collapsed under leaf nodes? (esp in shallow document views)
+
+Watch video to remember core ideas
+
+Cmd-arrow should move nodes
+
+Multi-select?
+  shift-arrows across boundaries?
+  drag selection across node boundaries?
+Copy / paste?
+Drag and drop?
+Paste text with multiple lines to create multiple nodes
+Paste images
+Paste lots of data formats
+
+x TreeNodes map should not be document centric
+x Redo doesn't work - I think because we are now putting multiple actions (some with "_UNDOABLE") into the reducer queue?
+x Smarter things should happen when you try to edit ghost nodes -- it should jump you to the master location and start making the edit there instead
+x Focus doesn't stay on ghost nodes during editing
+x Get concepts auto-displaying
+x Get concepts clickable
+x We lose our focused node after collapsing and expanding a higher branch containing it
+x Indenting under collapsed nodes such that the node goes into the collapsed node should expand the (new) parent node
+x Undos that have to expand the tree don't focus the right node
+Get rid of the bootstrap stylesheets.
+x Undo and redo over collapsed sections should auto expand those nodes
+x Deletion of nodes - undo/redo node focusing is off by one after the first undo cycle
+x Line inserts don't work (and never worked the way they really should anyway)
+x REFACTOR to use action creators in place of dispatch like this guy does:
+x Multi-line nodes don't display properly on reload
+x All the nodes are too narrow width-wise (and should probably not be cut off all at the same visual length)
 x Key commands like undo / redo are only captured within inputs - should be if any part of the app is focused.
-
-Expand/collapse widget doesn't work if the currently focused node is not within the view port. (We are scrolled above or below it)
-
+x Expand/collapse widget doesn't work if the currently focused node is not within the view port. (We are scrolled above or below it)
 x If you shift-select an entire node's contents to clear them, it triggers the node delete function (should just clear it out)
-
 x Indenting a node such that it becomes the child of a collapsed node should expand the node of which its becoming a part
-
 x Cursor should not change to clickable over nodes with no widget
-
 x Hitting enter on a collapsed node DOES add a new child (as it should), but it does not expand the node, which it should
 
 ----------------------------------
@@ -76,13 +193,6 @@ Concept rework
   It's really just name coincidence.
 
 
-Cmd-arrow should move nodes
-
-Selection model?
-  shift-arrows across boundaries?
-  drag selection across node boundaries?
-Copy / paste?
-Drag and drop?
 
 If you hit enter at the beginning of an input, should it push the node down one?
   If in the middle of some text, should it split?

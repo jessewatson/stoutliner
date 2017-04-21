@@ -1,8 +1,9 @@
-//import * as nodes from "../../types/nodes";
+import * as nodes from "../../types/nodes";
 
 import React from "react";
 import { connect } from "react-redux";
-import { NodeUtil } from "../../util";
+import { NodeAction } from "../../util";
+import ActionHandler from "../../util/ActionHandler";
 
 class ConceptViewClass extends React.Component<any,any>
 {
@@ -10,26 +11,19 @@ class ConceptViewClass extends React.Component<any,any>
   {
     super(props);
     this.handleClick = this.handleClick.bind(this);
-    this.mainViewClick = this.mainViewClick.bind(this);
   }
 
   render() 
   {
-    const {conceptNames,concepts} = this.props;
+    const {nodeModel} = this.props;
 
     return (
       <div>
-        <div className="conceptName">
-          <a href="#" onClick={this.mainViewClick}>
-          Main View
-          </a>
-        </div>
-        {conceptNames.map((conceptUpperName:string, index:number ) => { 
-          let displayName = concepts[conceptUpperName].displayName;
+        {nodeModel.concepts.map((concept:nodes.Concept, index:number ) => { 
           return (
             <div key={index} className="conceptName">
-              <a href="#" onClick={this.handleClick} title={displayName}>
-              {displayName}
+              <a href="#" onClick={(event) => this.handleClick(event,concept.nodeId)} title={concept.nodeId.toString()}>
+              {concept.name}
               </a>
             </div>);
         })}
@@ -37,38 +31,28 @@ class ConceptViewClass extends React.Component<any,any>
     );
   }
 
-  handleClick(e:any)
+  handleClick(e:any,nodeId:nodes.NodeId)
   {
     e.preventDefault();
-    let href= e.target as HTMLAnchorElement;
-    // save it in state
-    this.props.dispatch({ 
-      type: "RESET_ROOT",
-      query: href.title,
-      nodeTreeRevision: this.props.nodeTreeRevision+1 
-    });
-  }
 
-  mainViewClick(e:any)
-  {
-    e.preventDefault();
-    // save it in state
-    this.props.dispatch({ 
-      type: "RESET_ROOT",
-      rootNodeId: NodeUtil.mainRootNodeId,
-      nodeTreeRevision: this.props.nodeTreeRevision+1 
-    });
+    ActionHandler.nodeAction( (n:NodeAction) => {
+      n.setDocumentTreeNode(nodeId);
+    }, true, true, true );
+    
   }
 }
-
 
 // export the connected class
 function mapStateToProps(state:any): any
 {
   return { 
-    nodeTreeRevision: state.nodeModel.present.nodeTreeRevision,
-    concepts: state.conceptModel.concepts || [],
-    conceptNames: state.conceptModel.conceptNames || []
+    nodeModel: { 
+      documentNodeRefId: state.nodeModel.present.documentNodeRefId,
+      nodes:state.nodeModel.present.nodes, 
+      concepts:state.nodeModel.present.concepts || [], 
+      nodeTreeRevision: state.nodeModel.present.nodeTreeRevision 
+    },
   };
 }
-export const ConceptView = connect(mapStateToProps)(ConceptViewClass)
+export const ConceptView = connect(mapStateToProps,null,null,{withRef:true})(ConceptViewClass)
+//<TStateProps, TDispatchProps, TOwnProps>

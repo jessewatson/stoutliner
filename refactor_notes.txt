@@ -1,0 +1,66 @@
+
+
+A 
+
+    B <--- document node
+
+        C 
+
+            D 
+                context: [B-A]
+                {
+                    expanded: true
+                }
+
+                E 
+
+
+
+Refactor approach:
+
+    Document model changes - Node Model APIs mostly
+
+        state
+            userAccount {
+                username
+                email
+                passwordHash
+            }
+
+            projects:Array<project>
+            activeProjectId
+
+            project
+            {
+                documentNodeId
+
+                nodeModel (undoable)
+                    focusUndoState: {
+                        inputId,
+                        cursorPosition,
+                        inputOffset,
+                    }
+                    nodes:Array<Node>
+                        Node
+                            id
+                            name
+                            showAsConcept
+                            children:Array<Link>
+                    links:Array<Link>
+                        Link
+                            expanded
+                            ancestorPath:Array<nodeId>
+                            childId:nodeId
+            }
+
+    Node model changes
+
+
+
+    Node util changes
+
+
+
+    Node tree view / node view changes
+
+

@@ -1,0 +1,242 @@
+import * as n from "../../types/nodes";
+
+import React from "react";
+import { connect } from "react-redux";
+import ActionHandler from "../../util/ActionHandler"
+import { NodeAction } from "../../util";;
+import Draggable from 'react-draggable';
+import Select from 'react-select';
+
+interface LocalState
+{
+  activeDrags?: number;
+  nodeRefId?:n.NodeRefId;
+  query?:n.Query;
+  conceptsToShow?:Array<n.Concept>;
+}
+
+interface ReduxState
+{
+  treeNodes?: n.TreeNodes;
+  documents?: Array<n.Document>;
+}
+
+type State = LocalState & ReduxState;
+
+interface ParamProps
+{
+  visible: boolean;
+  nodeRefId: n.NodeRefId;
+}
+
+type Props = ParamProps & ReduxState;
+
+class QueryDialogViewClass extends React.Component<Props, State>
+{
+  refs: any;
+
+  constructor(props:any) 
+  {
+    super(props);
+    this.state = { activeDrags: 0 };
+    this.onStart = this.onStart.bind(this);
+    this.onStop = this.onStop.bind(this);
+    this.setShowSelect = this.setShowSelect.bind(this);
+    this.setConceptsToShowSelect = this.setConceptsToShowSelect.bind(this);
+    this.defineChildrenClicked = this.defineChildrenClicked.bind(this);
+    this.deleteEntryClicked = this.deleteEntryClicked.bind(this);
+
+    const n = NodeAction.get();
+    
+    this.state = {  
+      query:n.getOrCreateQuery(this.props.nodeRefId),
+      conceptsToShow:n.getConceptsToShow(this.props.nodeRefId)
+    };
+    console.log("hey",n.getConceptsToShow(this.props.nodeRefId));
+  }
+
+  componentWillReceiveProps(nextProps:Props) 
+  {
+    if( nextProps.visible )
+    {
+      //this.refresh();
+    }
+
+    return true;
+  }
+
+  onStart() 
+  {
+    this.refs.invisibleOverlay.style.display = "block";
+    this.setState({activeDrags: ++this.state.activeDrags});
+  }
+
+  onStop() 
+  {
+    this.setState({activeDrags: --this.state.activeDrags});
+    this.refs.invisibleOverlay.style.display = "none";
+  }
+/*
+  show( nodeRefId:n.NodeRefId )
+  {
+    ActionHandler.nodeAction( n => {
+      this.setState( { 
+        visible:true, 
+        nodeRefId:nodeRefId, 
+        query:n.getOrCreateQuery(nodeRefId), 
+        conceptsToShow:n.getConceptsToShow(nodeRefId) } );
+    }, false, true, false );
+  }
+*/
+  refresh()
+  {
+    ActionHandler.nodeAction( n => {
+      this.setState( { 
+        query:n.getOrCreateQuery(this.props.nodeRefId), 
+        conceptsToShow:n.getConceptsToShow(this.props.nodeRefId) } );
+    }, false, false, false );
+
+    console.log("post refresh",this.state);
+  }
+/*
+  hide()
+  {
+    this.setState( { visible:false, nodeRefId:null } );
+  }
+*/
+  defineChildrenClicked()
+  {
+    let { query } = this.state;
+    ActionHandler.nodeAction( n => {
+      this.setState( { query: n.addQueryEntry( query ) } );
+    } );
+  }
+
+  deleteEntryClicked( entryId:n.QueryEntryId )
+  {
+    let { query } = this.state;
+    ActionHandler.nodeAction( n => {
+      this.setState( { query: n.deleteQueryEntry( query, entryId ) } );
+    } );
+  }
+
+  setShowSelect(showSelectOption:n.SelectOption, index:n.QueryEntryId) 
+  {
+    const { nodeRefId } = this.state;
+    this.setSelected( nodeRefId, index, showSelectOption.value as string );
+  }
+
+  setConceptsToShowSelect(conceptsToShowSelectOption:n.SelectOption, index:number) 
+  {
+    const { nodeRefId } = this.state;
+    this.setSelected( nodeRefId, index, null, conceptsToShowSelectOption.value as number );
+  }
+
+  setSelected( nodeRefId:n.NodeRefId, index:number, showSelectNewValue?:string, conceptsToShowNodeIdNewValue?:n.NodeId )
+  {
+    const queryParams:n.QueryEntryParams = 
+      showSelectNewValue ? { showSelect:showSelectNewValue } : { conceptsToShowNodeId:conceptsToShowNodeIdNewValue };
+    
+    const { query } = this.state;
+    
+    // set the select value
+    const newEntry = Object.assign( {}, query.entries[ index ], queryParams );
+    let newEntries = query.entries.slice();
+    newEntries[index] = newEntry;
+
+    // merge it into the query
+    const newQuery:n.Query = { nodeRefId:nodeRefId, entryIds: null, entries: newEntries };
+
+    // save the query
+    ActionHandler.nodeAction( n => {
+      // set the query in the redux state, returns the finished query obj
+      n.setQuery( nodeRefId, newQuery );
+      // set the query in the local state
+      this.setState( { query:newQuery } );
+    }, true, true, false );
+  }
+
+  render() 
+  {
+    console.log("on render",this.state);
+
+    const { query, conceptsToShow } = this.state;
+    const { visible, nodeRefId, documents } = this.props;
+
+    console.log( "visible", visible, "nodeRefId", nodeRefId );
+
+    if( !nodeRefId || !visible ) return null;
+
+    const dragHandlers = { onStart: this.onStart, onStop: this.onStop };
+    const thisDoc = documents.find( doc => doc.nodeRefId == nodeRefId );
+
+    // generate concepts to show dropdown
+    const conceptsToShowOptions:Array<n.SelectOption> = [];
+    conceptsToShowOptions.push( { value: -1, label: "parent" } );
+
+    for( let concept of conceptsToShow )
+      conceptsToShowOptions.push( { value: concept.nodeId, label: concept.name } );
+
+    //https://github.com/JedWatson/react-select
+
+    return (
+      <div ref="queryDialog" className="queryDialog">
+        <div ref="invisibleOverlay" className="invisibleOverlay"
+            onClick={(event) => event.preventDefault()}></div>
+        <Draggable handle=".nonModalDialogHeader" {...dragHandlers}>
+          <div className="nonModalDialog">
+            <div className="nonModalDialogHeader">
+              <span className="nonModalDialogTitle">{thisDoc.name}</span>
+              <span className="closeWindowIcon fa fa-window-close" aria-hidden="true"></span>
+            </div>
+            <div className="nonModalDialogBody">
+              { query.entries.map( (queryEntry, index) => {
+                return (
+                <div className="showLine" key={queryEntry.id} style={{marginLeft:index*15}}>
+
+                  <Select className="showSelect"
+                    clearable={false}
+                    searchable={false}
+                    name="showSelect"
+                    value={queryEntry.showSelect}
+                    options={n.SHOW_SELECT_OPTIONS}
+                    onChange={(option:n.SelectOption) => this.setShowSelect(option, index) }/>
+
+                  <Select className="showSelect"
+                    clearable={false}
+                    name="conceptsToShowSelect"
+                    value={queryEntry.conceptsToShowNodeId}
+                    options={conceptsToShowOptions}
+                    onChange={(option:n.SelectOption) => this.setConceptsToShowSelect(option, index)}/>
+
+                  <i className="removeCircle fa-times-circle" aria-hidden="true" 
+                    onClick={()=>this.deleteEntryClicked(queryEntry.id)}></i>
+
+                </div> 
+                );
+              })}
+              <div 
+                className="defineQueryRow" 
+                style={{marginLeft:query.entries.length*15}} 
+                onClick={() => this.defineChildrenClicked()}>
+                <span className="defineQuery">
+                  <i className="plusCircle fa fa-plus-circle" aria-hidden="true"></i> define children</span>
+              </div>
+            </div>
+          </div>
+        </Draggable>
+      </div>
+    );
+  }
+}
+
+
+// export the connected class
+function mapStateToProps(state:n.NodeModelState): ReduxState
+{
+  return { 
+    treeNodes:state.nodeModel.present.treeNodes,
+    documents:state.nodeModel.present.documents,
+  };
+}
+export const QueryDialogView = connect(mapStateToProps,null,null,{withRef:true})(QueryDialogViewClass)

@@ -1,25 +1,22 @@
 import { combineReducers } from "redux";
 import { routerReducer } from "react-router-redux";
 import { reducer as formReducer } from "redux-form";
-import nodeReducer from "./nodeReducer";
-import focusReducer from "./focusReducer";
-import senseReducer from "./senseReducer";
-import conceptReducer from "./conceptReducer";
-import rootReducer from "./rootReducer";
+//import nodeReducer from "./nodeReducer";
+//import baseReducer from "./baseReducer";
+//import senseReducer from "./senseReducer";
 import undoable from 'redux-undo';
-
+import ActionHandler from "../util/ActionHandler";
 
 // main reducers
 export const reducers = combineReducers({
   routing: routerReducer,
-  focus: focusReducer,
-  sense: senseReducer,
-  root: rootReducer,
-  conceptModel: conceptReducer,
-  nodeModel: undoable(nodeReducer, 
+  base: ActionHandler.baseReducer,
+  nodeModel: undoable( ActionHandler.nodeReducer, 
   {
-    filter: function filterActions(action, currentState, previousHistory) 
+    query: function queryActions(action, currentState, previousHistory) 
     {
+      let undoable = action.type.endsWith("_UNDOABLE")
+
       return action.type.endsWith("_UNDOABLE");
     }
   })

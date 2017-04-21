@@ -3,14 +3,51 @@ import nodes from "../../types/nodes";
 import * as React from 'react';
 
 import { connect } from "react-redux";
-import { NodeUtil } from "../../util";
-//import NodeSenseView from "./NodeSenseView";
+import { NodeAction } from "../../util";
+import ActionHandler from "../../util/ActionHandler";
+//import NodeTreeView from "./NodeTreeView";
 
-export class NodeViewClass extends React.PureComponent<any, nodes.NodeModel>
+import { NodeSenseView } from "./NodeSenseView";
+
+interface StateProps
+{
+  documentNodeRefId: nodes.NodeRefId;
+  docTreeNodes: Array<nodes.TreeNode>;
+  treeNodes: nodes.TreeNodes;
+  nodes: nodes.Nodes;
+  nodeRefs: nodes.NodeRefs;
+  nodeTreeRevision: number;
+  treeNodeMetas: nodes.TreeNodeMetas;
+  focus: nodes.Focus;
+}
+
+interface ParamProps
+{
+  index:number;
+  treeNodeKey:nodes.TreeNodeKey;
+  level:number;
+  numChildren:number;
+  handleKeyPress:any;
+  handleClickExpandIcon:any;
+  handleOnBlur:any;
+  handlePaste: any;
+  handleClickTreeNode:any;
+  handleOnFocus:any;
+  mergeFocus:any;
+  captureFocus:any;
+  getFocusedTreeNodeKey:any;
+  setInternalFocusing:any;
+  getInternalFocusing:any;
+  getUndoingRedoing:any;
+  setUndoingRedoing:any;
+  findInputContainerForKey:any;
+}
+
+type Props = ParamProps & StateProps;
+
+export class NodeViewClass extends React.PureComponent<Props, StateProps>
 {
   refs: any;
-  private didChange:boolean = false;
-  private nodeTreeRevision:number;
 
   constructor(props: any) 
   {
@@ -22,115 +59,95 @@ export class NodeViewClass extends React.PureComponent<any, nodes.NodeModel>
     this.setState = this.setState.bind(this);
     this.showNodeMenu = this.showNodeMenu.bind(this);
     this.hideNodeMenu = this.hideNodeMenu.bind(this);
-    this.setFocusFromState = this.setFocusFromState.bind(this);
     this.handleChange = this.handleChange.bind(this);
     this.handleOnBlur = this.handleOnBlur.bind(this);
   }
 
-  shouldComponentUpdate(nextProps:any, _nextState:any) 
+  shouldComponentUpdate(nextProps:Props, _nextState:any) 
   {
-    if( this.getNode() == null) return false;
-    
-    const myId = this.getNode().id;
-    const didFocus = nextProps.focus.focusedNodeId == myId;
-    const nextNode = NodeUtil.getNodeForId(nextProps.nodeModel,myId);
-    const thisNode = NodeUtil.getNodeForId(this.props.nodeModel,myId);
-    this.nodeTreeRevision = this.props.thisNodeTreeRevision == null ? 1 : this.props.thisNodeTreeRevision;
+    let { treeNodeKey } = this.props;
+
+    if( treeNodeKey == null ) 
+      return false;
+
+    const didFocus = nextProps.focus.focusedTreeNodeKey == treeNodeKey;
+
+    // do a fresh lookup on both tree nodes
+    const nextNode = nextProps.treeNodes[treeNodeKey];
+    const thisNode = this.props.treeNodes[treeNodeKey];
 
     // bail if we got deleted or there is no next
     if( nextNode == null ) return false;
 
-    const didChange = 
-      nextProps.level != this.props.level ||
-      nextNode.text != thisNode.text ||
-      nextNode.childIds.length != thisNode.childIds.length ||
-      nextNode.expanded != thisNode.expanded ||
-      nextNode.showRelatedChildren != thisNode.showRelatedChildren ||
-      nextNode.showRelatedTrees != thisNode.showRelatedTrees;
+    const didChange = !NodeAction.treeNodesSame( thisNode, nextNode );
 
-/* DEBUG COMMENT - DO NOT DELETE -- For debugging excessive or unecessary renders
-    if( !didChange ) 
-      console.log("NodeView - '"+thisNode.text+"' no change detected",this.props,nextProps);
-    else
-    {
-      console.log("NodeView - '"+thisNode.text+"' YES change detected",this.props,nextProps);
-      console.log("nextProps.level != this.props.level"+( nextProps.level != this.props.level ));
-      console.log("nextNode.text != thisNode.text "+( nextNode.text != thisNode.text ));
-      console.log("!NodeUtil.childrenAreEqual(nextNode,thisNode) "+( !NodeUtil.childrenAreEqual(nextNode,thisNode) ));
-      console.log("nextNode.expanded != thisNode.expanded "+( nextNode.expanded != thisNode.expanded ));
-      console.log("nextNode.autoAdd != thisNode.autoAdd"+( nextNode.autoAdd != thisNode.autoAdd ));
-    }
-*/
     return didFocus || didChange;
   }
 
   componentDidUpdate()
   {
-    this.componentInit();
+    this.componentFinalize();
   }
 
   componentDidMount()
   {
-    this.componentInit();
+    this.componentFinalize();
   }
 
-  componentInit()
+  componentFinalize()
   {
-    // On load, see if there is any additional focus state to load
-    if( this.props.focus.focusedNodeId == this.getNode().id )
-    {
-      //console.log("Nodeview - calling setFocusfromstate for "+this.props.focus.focusedNodeId);
-      this.setFocusFromState();
-      // clear the state so we don't load it again next time
-      this.props.dispatch({
-        type: 'FOCUS_SET',
-        focusedNodeId: null,
-        inputOffset: null,
-        cursorOffset: null,
-        cursorPosition: null
-      });
-    }
+    let {level,numChildren} = this.props;
+
     // display expand or contract icons based on whether this node has children
-    this.refs.nodeExpandIcon.style.display = this.props.hasChildren ? "block" : "none";
+    this.refs.nodeExpandIcon.style.display = numChildren > 0 ? "block" : "none";
     // indent based on level
-    this.refs.nodeContainer.style.marginLeft = (this.props.level*15).toString() + "px";
+    this.refs.nodeContainer.style.marginLeft = (level*15).toString() + "px";
     // adjust the text area if it is multi-line
     this.textAreaAdjust(null);
-    this.didChange = false;
+    // set focus if needed
+    this.setFocusFromState();
   }
-
 
   // This is used to implement a specific action just taken to change the focus
   // e.g. arrow up, arrow down, etc.
-  setFocusFromState( focus=this.props.focus )
+  setFocusFromState()
   {
-    let { focusedNodeId, inputOffset, cursorOffset, cursorPosition } = focus;
-
-    if( !cursorOffset ) { cursorOffset = 0; }
-    if( !inputOffset ) { inputOffset = 0; }
-
-    let inputContainer = this.props.findInputContainerForNodeId( focusedNodeId, inputOffset );
-
-    if( inputContainer != null )
+    if( this.props.focus.performFocus )
     {
-      let {input} = inputContainer;
+      let { focusedTreeNodeKey, cursorOffset, cursorPosition } = this.props.focus;
 
-      if( cursorPosition == null )
+      if( !cursorOffset ) { cursorOffset = 0; }
+
+      if( focusedTreeNodeKey == null )
+        focusedTreeNodeKey = this.props.docTreeNodes[0].key;
+
+      let inputContainer = this.props.findInputContainerForKey( focusedTreeNodeKey );
+
+      // if it's null, the node representing the input may be collapsed - just ignore the request.
+      if( inputContainer != null )
       {
-        cursorPosition = input.selectionStart; 
-      }
-      else if( cursorPosition == -1 || // -1 is code for end of line
-               cursorPosition > input.value.length )
-      {
-        cursorPosition = input.value.length;
+        let {input} = inputContainer;
+
+        if( cursorPosition == null )
+        {
+          cursorPosition = input.selectionStart; 
+        }
+        else if( cursorPosition == -1 || // -1 is code for end of line
+                cursorPosition > input.value.length )
+        {
+          cursorPosition = input.value.length;
+        }
+
+        this.props.setInternalFocusing(true);
+        //console.log("Setting focus to ",focusedTreeNodeKey,focusedTreeNodeKey ? this.props.treeNodes[focusedTreeNodeKey] : "null" );
+        input.focus();
+        input.setSelectionRange( cursorPosition+cursorOffset, cursorPosition+cursorOffset );
+        this.props.setInternalFocusing(false);
       }
 
-      input.focus();
-      input.setSelectionRange( cursorPosition+cursorOffset, cursorPosition+cursorOffset );
-    }
-    else
-    {
-      console.log("WARNING: input should not be null here! (2)");
+      ActionHandler.nodeAction( (n:NodeAction) => {
+        n.focusComplete();
+      });
     }
   }
 
@@ -140,95 +157,56 @@ export class NodeViewClass extends React.PureComponent<any, nodes.NodeModel>
     this.refs.textArea.style.height = (this.refs.textArea.scrollHeight)+"px";
   }
 
-  showNodeMenu(_event:any,_node:nodes.Node) 
+  showNodeMenu() 
   {
-    this.refs.nodeMenu.style.display = "block";
-    this.refs.nodeMenuOverlay.style.display = "block";
+    this.refs.nodeMenuContainer.style.display = "block";
+    this.refs.invisibleOverlay.style.display = "block";
   }
 
-  hideNodeMenu(_event:any,_node:nodes.Node) 
+  hideNodeMenu() 
   {
-    this.refs.nodeMenu.style.display = "none";
-    this.refs.nodeMenuOverlay.style.display = "none";
-  }
-/*
-  showRelatedChildrenChecked()
-  {
-    this.props.dispatch({
-      type: 'NODES_UPDATE',
-      nodeId: node.id,
-      text: event.target.value,
-      focusState: this.props.captureFocusState()
-    });
-  }
-*/
-
-  handleChange(event:any,node:nodes.Node): void
-  {
-    this.props.dispatch({
-      type: 'NODES_UPDATE',
-      nodeId: node.id,
-      text: event.target.value,
-      focusState: this.props.captureFocusState()
-    });
-
-    this.props.dispatch({
-      type: 'CONCEPTS_RECALCULATE'
-    });
-
-    this.didChange = true;
-/* todo - finish intellisense system
-    this.props.dispatch({
-      type: 'SENSE_GET',
-      nodeId: node.id,
-      text: event.target.value
-    });
-*/
+    this.refs.nodeMenuContainer.style.display = "none";
+    this.refs.invisibleOverlay.style.display = "none";
   }
 
-  handleOnBlur( event:any, node:nodes.Node )
+  handleChange(event:any,treeNode:nodes.TreeNode): void
   {
-    this.props.handleOnBlur(event,node);
+    // update the node view buffer as we type
+    ActionHandler.nodeAction( (n:NodeAction)=> { 
+      n.updateDraftNodeName( treeNode.key, event.target.value );
+      n.captureFocus( this.props.captureFocus() );
+     }, false, true, true );
 
-    console.log( ">> NodeView handleOnBlur is calling NODES_UPDATEAUTO_SAVE" );
-    // trigger a cascading node refresh for this node
-    this.props.dispatch({
-      type: 'NODES_UPDATEAUTO_SAVE',
-      nodeId: NodeUtil.mainRootNodeId,
-      nodeTreeRevision: this.nodeTreeRevision+1,
-    });
-
+    this.refs.nodeSenseView.getWrappedInstance().handleChange(event,treeNode);
   }
 
-  handleKeyPress(event:any,node:nodes.Node)
+  handleOnBlur( event:any, treeNode:nodes.TreeNode )
   {
-    if( event.key == "ArrowUp"  && !event.shiftKey )
+    // this "if" keeps us from auto-committing nodes upon redo / undo as focus is changing
+    // (because that messes up state history)
+    if( !this.props.getUndoingRedoing() )
     {
-      event.preventDefault();
-      this.props.dispatch({
-        type: 'FOCUS_SET',
-        focusedNodeId: this.props.getFocusedNodeId(),
-        inputOffset: -1,
-        cursorPosition: this.getInput().selectionStart
-      });
-    }
-    else if( event.key == "ArrowDown"  && !event.shiftKey )
-    {
-      event.preventDefault();
-      this.props.dispatch({
-        type: 'FOCUS_SET',
-        focusedNodeId: this.props.getFocusedNodeId(),
-        inputOffset: 1,
-        cursorPosition: this.getInput().selectionStart
-      });
-    }
-    else
-    {
-      this.props.handleKeyPress(event,node);
-    }
+      const treeNodeMeta = this.props.treeNodeMetas[treeNode.key];
+      if( treeNodeMeta && treeNodeMeta.updatingNodeName )
+      {
+        ActionHandler.nodeAction( (n:NodeAction)=> { 
+          n.commitNodeName( treeNode.key );
+          n.captureFocus( this.props.captureFocus() );
+        }, true, true, true );
+      }
 
+      this.props.handleOnBlur(event,treeNode);
+      //this.refs.nodeSenseView.getWrappedInstance().handleOnBlur(event,treeNode);
+    }
+  }
 
-    this.textAreaAdjust(event);
+  handleKeyPress(event:any,treeNode:nodes.TreeNode)
+  {
+    if( !this.refs.nodeSenseView.getWrappedInstance().isVisible() )
+    {
+      this.props.handleKeyPress(event,treeNode);
+      this.textAreaAdjust(event);
+    }
   }
 
   focus()
@@ -241,63 +219,70 @@ export class NodeViewClass extends React.PureComponent<any, nodes.NodeModel>
     return this.refs.textArea;
   }
 
-  getNode()
-  {
-    return NodeUtil.getNodeForId(this.props.nodeModel,this.props.nodeId);
-  }
-
-
   // render
   render() 
   {
-    const {nodeModel, nodeId, expanded, handleClickExpandIcon, handleOnFocus} = this.props;
+    const {index, treeNodeKey, treeNodes, treeNodeMetas, handleClickExpandIcon, handleOnFocus, handlePaste, handleClickTreeNode} = this.props;
 
-    const node = NodeUtil.getNodeForId(nodeModel,nodeId);
-    const nodeText = NodeUtil.getNodeTextForId(nodeModel,node.id);
+    // get a fresh tree node since the flattened tree model may not have been updated above us.
+    
+    const treeNode = treeNodes[treeNodeKey];
+    const treeNodeMeta = treeNodeMetas[treeNodeKey];
 
-    const fontName = expanded ? "nodeExpandIcon fa fa-caret-down" : "nodeExpandIcon fa fa-caret-right";
+    let nodeText = treeNodeMeta && treeNodeMeta.updatingNodeName ? treeNodeMeta.draftName : treeNode.name;
+
+    const fontName = treeNode.expanded ? "nodeExpandIcon fa fa-caret-down" : "nodeExpandIcon fa fa-caret-right";
+
+    let textAreaClass = treeNode.ghost ? "textArea ghostTextArea" : "textArea";
 
     return (
       <div className="nodeContainer" id="nodeContainer" ref="nodeContainer">
         <div id="nodeIcons" className="nodeButtonContainer">
-          <div ref="nodeMenuOverlay" className="nodeMenuOverlay"
-            onClick={(event) => this.hideNodeMenu(event,node)}></div>
-          <div className="nodeMenu">
+          <div ref="invisibleOverlay" className="invisibleOverlay"
+            onClick={ () => this.hideNodeMenu() }></div>
+          <div className="nodeMenuContainer">
             <button key="menuButton" id="menuButton" className="nodeButton"
-              onClick={(event) => this.showNodeMenu(event,node)}>
+              onClick={ () => this.showNodeMenu() }>
               <span id="menuIcon" 
                 className="nodeMenuIcon fa fa-bars" 
                 aria-hidden="true"></span>
             </button>
-            <ul ref="nodeMenu" className="dropDownMenu">
-              <li><input type="checkbox"/> Show Related Children</li>
-              <li><input type="checkbox"/> Show Related Trees</li>
+            <ul ref="nodeMenuContainer" className="nodeMenu">
+              <li>Define Children</li>
+              <li >Expand All</li>
+              <li >Collapse All</li>
+              <li >Change Sort Order</li>
             </ul>
           </div>
           <button key="expandWidget"
             id="expandWidget" className="nodeButton"
-            onClick={(event) => handleClickExpandIcon(event,node)}>
+            onClick={(event) => handleClickExpandIcon(event,treeNode)}>
             <span id="expandIcon" ref="nodeExpandIcon"
               aria-hidden="true" 
               className={fontName}></span>
           </button>
         </div>
-        <textarea 
-          title={"id: "+node.id+", relatedChildOf: "+node.relatedChildOf}
-          className="textArea" 
-          id={node.id.toString()}
-          ref="textArea"
-          onBlur={(event) => this.handleOnBlur(event,node)}
-          onFocus={(event) => handleOnFocus(event,node)}
-          onKeyUp={(event) => this.textAreaAdjust(event)}
-          onKeyDown={(event) => this.handleKeyPress(event,node)} 
-          onChange={(event) => this.handleChange(event,node)}
-          value={ nodeText }></textarea>
+        <NodeSenseView ref="nodeSenseView" treeNodeKey={treeNode.key} textTyped={ nodeText } >
+          <textarea 
+            ref="textArea"
+            title={"index"+index+", tree node key: "+treeNode.key+", tree node ref: "+treeNode.nodeRefId+", points at node id: "+treeNode.nodeId}
+            className={textAreaClass}
+            id={treeNode.key} 
+            onPasteCapture={(event) => handlePaste(event,treeNode)}
+            onBlur={(event) => this.handleOnBlur(event,treeNode)}
+            onFocus={(event) => handleOnFocus(event,treeNode)}
+            onClick={(event) => handleClickTreeNode(event,treeNode)}
+            onKeyUp={(event) => this.textAreaAdjust(event)}
+            onKeyDown={(event) => this.handleKeyPress(event,treeNode)} 
+            onChange={(event) => this.handleChange(event,treeNode)}
+            value={ nodeText }>
+          </textarea>
+        </NodeSenseView>
       </div>      
     );
     /*
       <NodeSenseView 
-        nodeId={node.id}
+        treeNodeId={node.id}
         handleOnBlur={this.handleOnBlur}/>            
     */
   }
@@ -306,11 +291,15 @@ export class NodeViewClass extends React.PureComponent<any, nodes.NodeModel>
 function mapStateToProps(state:any): any
 {
   return { 
-    nodeModel: { 
-      nodes:state.nodeModel.present.nodes, 
-      nodeTreeRevision: state.nodeModel.present.nodeTreeRevision 
-    },
-    focus: state.focus    
+    documentNodeRefId: state.nodeModel.present.documentNodeRefId,
+    docTreeNodes: state.nodeModel.present.docTreeNodes,
+    treeNodes: state.nodeModel.present.treeNodes,
+    nodes:state.nodeModel.present.nodes, 
+    nodeRefs:state.nodeModel.present.nodeRefs, 
+    nodeTreeRevision: state.nodeModel.present.nodeTreeRevision,
+    treeNodeMetas: state.nodeModel.present.treeNodeMetas,
+    focus: state.nodeModel.present.focus,
   };
 }
-export const NodeView = connect(mapStateToProps)(NodeViewClass);
+export const NodeView = connect<StateProps, ParamProps, ParamProps>(mapStateToProps,null,null,{withRef:true})(NodeViewClass);
+//<TStateProps, TDispatchProps, TOwnProps>

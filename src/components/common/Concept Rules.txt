@@ -1,19 +1,118 @@
-Use cases:
+----------------------------------------------
+Use cases in a master-slave model:
+Bottom line problem: You either go with read-only slaves, or you are really not in a master-slave model.
+And read-only slaves may feel rigid / diminish the power of the system.
+----------------------------------------------
 
-What should happen 
+  What should happen when I try to add a node under (as a child of) an auto-created slave node?
+
+    Once established there, what if the origin node (the master of the autocreated slave) is removed? 
+
+  What should happen when I try to add a node within a "merged" subtree? (e.g. All "Requirements" or "Chapter Events" merged in one list)
+
+    Should the new "requirements native" node appear in all contexts in which Requirements appears?
+
+      Yes.
+        If so... is it logically the "same node", and updates to it will apply everywhere?
+          Yes.
+        If I delete it by backspacing, is it doing the same thing to the names of all the same-named nodes elsewhere?
+          Yes - maybe we need the Excel edit model to make this more obvious though.
+        If I delete it, will it delete everywhere?
+          Yes, but it will warn you.
+          We need a way to delete nodes that is not just "backspacing".
+        If I add children under this  node, will changes to it be reflected everywhere?
+        How do I "unlink" a node from its global identity if I want to change it in one place?
+
+  What if I happen to rename a node such that it has the same name as another nodel, and they are both under "Requirements" under different features?
+
+    Graphs 
+      Reqs
+        R1
+          Bobbo
+    Tables
+      Reqs
+        R1
+          Koolio
+
+    What if they each already have different subtrees? Should they "merge"? 
+    
+      With a warning, yes.
+
+        What's the alternative to the warning -- is there an option under which they can co-exist as differently named entities?
+
+  What should happen when I try to remove an auto-created descendant node that's under a slave node?
+
+    Should it auto-populate?
+    Should it be removed from the master as well?
+
+  What should happen when I try to change the text of a "slave node"?
+
+    It should update the name of the master and the other slaves?
+    Or it should not allow it without any other feedback?
+    Or it should display a warning that I am attempting to change "slave" text created elsewhere, then let me?
+    Or it should jump me right to the master node to edit it there?
+
+  What if my name gets changed to be the same as another concept?
+
+    If all my other same-named nodes change as well, does that mean that both of us should inherit one "mix-in" / "merged" subtree of children?
+
+      For now, let's say yes.
+
+  What should happen when I try to delete a slave node?
+
+  What should happen when I try to delete a master node?
+
+    Should the slave become the new master?
+
+      That would involve re-pointing all the nodes' relatedChildOf which pointed toward the master.
+
+        And maybe that is it.
+
+    Which slave should become the new master?
+
+      Just pick one?
+    
+    Is there really any difference between slaves and masters?
+
+
+
+  What should happen when I try to delete 
+
+  If slave nodes are read only, how should I navigate the tree?
+
+    How should I move, insert, delete, etc?
+
+      Maybe the cursor could move among the characters, but backspace and character insertions wouldn't "do" anything.
+
+        Wouldn't that be confusing?
+
 
   What should happen to a node when its same-named nodes elsewhere...
 
     have their text changed?
+      Should my text get changed because someone else's did?
+      If not, and if I have some "inherited" children, should they go away because my "identity" changed?
+
+    have their text changed to a different, but existing concept?
+      Should all its children be deleted and replaced by the other concept's?
+      Should that "edit" of this text (effectively changing its definition from one concept to another) happen to every node with that name?
+      If I am one of those nodes, should all MY children be deleted and replaced by the new node tree?
+
     are deleted?
+      Does the user necessarily want all nodes of that name to be deleted?
+
     are moved / indented / unindented?
+      ??
+
+===============================================================
+I think we need a concept of master-slave with color coding
+===============================================================
 
 What should happen to a tree of nodes that has been auto-created from the main view when its root in the main view is deleted?
 
 Should there be a concept of a "master" and a "slave"?
 
 If there is not, do things just get "too weird".
-
 
 Example:
 
@@ -41,15 +140,14 @@ Should an automatically created tree really trigger auto creation in the main vi
   So does that mean we should only automatically add clones of nodes where isRelatedChild=false?
     Maybe - but we still need to recurse through the whole tree.
 
-  Should we automatically delete previously cloned nodes & trees (isRelatedChild=true), if their origin no long exists?
+  Should we automatically delete previously cloned nodes & trees (isRelatedChild=true), if their origin no longer exists?
   Just delete any autocreated nodes (that don't have standard nodes hanging off of them), then allow autoadd to add them back?
   Maybe we can delete nodes while auto-adding under some conditions.
-
 
     Good question. Right now though, we don't track the "origin" of such nodes. But we could.
     Should we? Or should we 
     This also opens up the problem of renamed nodes, which are pretty problematic right now.
-    Every rename results in an orphaned "fossil" tree whose origins no longer sync.
+    Every rename results in an orphaned "fossil" tree whose origin no longer sync.
 
 Should it trigger it in other autonodes?
 
@@ -101,9 +199,48 @@ It seems like the updates really shouldn't happen until on-blur.
 
 Which means it needs to be a "synchronization" process between disparate trees.
 
-So the data model we have now is probably close to right.
+So the data model we have now is probably closer to right.
 
+Or we go back to centralized concepts model, but each node also has "local" text which is a temporary "editing" buffer.
 
+For that matter-- why have an editing buffer? Why not ditch the "text" field and not update the state at all until on blur?
+
+Well, that could be dangerous. You may think you have saved your changes, but you haven't.
+
+We would need an editing model that was more like Excel to make it obvious.
+
+Maybe we need to move to that next. I am reticent though.
+
+export interface ConceptModel
+{
+  conceptNames: 
+  [
+    "Requirements",
+    "Features"
+  ]
+  concepts: 
+  {
+    "REQUIREMENTS":
+    {
+      upperName: "REQUIREMENTS",
+      displayName: "Requirements",
+      type: "auto"
+    }
+    "FEATURES":
+    {
+      upperName: "FEATURES",
+      displayName: "Features",
+      type: "auto"
+    }
+  }
+}
+
+node
+{
+  concept: "REQUIREMENTS"
+  text: "Requirements I am changing it..." <-- would take effect on blur
+  ...
+}
 
 
 ======================

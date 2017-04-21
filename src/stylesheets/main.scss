@@ -1,10 +1,29 @@
+
+$light-gray: #F5F5F5;
+$medium-light-gray: #E1E1E1;
+$medium-light-gray-border: $medium-light-gray 1px solid;
+$medium-gray: #B7B7B7;
+$medium-dark-gray: #808080;
+$deep-blue: #4485F6;
+$deep-blue-border: $deep-blue 2px solid;
+$light-blue: #dbe8ff;
+$font-stack: 17px "Open Sans", Arial, sans-serif;
+$shadow-stack: 0 6px 12px rgba(0,0,0,.175);
+
 body {
   background-color: white;
+  color: black;
+  font: $font-stack;
 }
 
-.progress {
-  margin: 10px auto;
-  width: 300px;
+input, textarea, keygen, select, button {
+  font: $font-stack;
+}
+
+.ellipses {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .container {
@@ -33,8 +52,26 @@ body {
   text-align: center;
 }
 
-div#nodeIcons:hover span#menuIcon {
-  color: black !important;
+.nodeViewMain {
+  display: flex;
+  flex-direction: row;
+}
+
+.nodeViewPane {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.nodeViewContainer {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.nodeViewWrapper {
+  display:flex;
+  flex-direction:column;
 }
 
 .nodeContainer {
@@ -42,6 +79,8 @@ div#nodeIcons:hover span#menuIcon {
   flex-grow: 1;
   flex-direction: row;
   align-items: center;
+  margin-top:1px;
+  margin-bottom:1px;
 }
 
 .nodeButtonContainer {
@@ -49,9 +88,11 @@ div#nodeIcons:hover span#menuIcon {
   justify-content: flex-end;
   width: 40px;
   flex-direction: row;
+  align-self: flex-start;
+  margin-top: 5px;
 }
 
-.nodeButton  {
+.nodeButton {
   padding: 0px;
   margin: 0px;
   background-image: none;
@@ -67,23 +108,27 @@ div#nodeIcons:hover span#menuIcon {
 }
 
 .nodeExpandIcon {
+  cursor: pointer;
   width: 20px;
   text-align: center;
-  font-family: FontAwesome;
-  font-size: 15px;
+  font: 15px FontAwesome;
   display: none;
 }
 
 .nodeMenuIcon  {
+  cursor: pointer;
   width: 20px;
   text-align: center;
   display: block;
-  font-family: FontAwesome;
-  font-size: 13px;
+  font: 13px FontAwesome;
   color: transparent;
 }
 
-.nodeMenuOverlay  {
+div#nodeIcons:hover span#menuIcon {
+  color: black !important;
+}
+
+.invisibleOverlay  {
   position:fixed;
   width:100%;
   height:100%;
@@ -91,43 +136,153 @@ div#nodeIcons:hover span#menuIcon {
   left:0;
   z-index:900;
   opacity:0.5;
-  display:none
+  display:none;
 }
 
-.nodeMenu  {
+.menuContainer  {
   position: relative;
 }
 
-.dropDownMenu  {
+.menu {
+  cursor: pointer;
+  z-index: 1000;
+  min-width: 200px;
+  margin: 0px;
+  list-style: none;
+  border: $medium-light-gray-border;
+  background-color: white;
+  -webkit-padding-start: 0px;
+  -webkit-padding-end: 0px;
+  -webkit-margin-before: 0px;
+  -webkit-margin-after: 0px;
+  -webkit-margin-start: 0px;
+  -webkit-margin-end: 0px;
+
+  li {
+    padding: 3px 10px 3px 10px;
+    min-width: 200px;
+  }
+
+  :hover {
+    background-color: $deep-blue;
+    color: white;
+  }
+}
+
+.nodeMenuContainer {
+  @extend .menuContainer;
+}
+
+.nodeMenu {
+  @extend .menu;
+  box-shadow: $shadow-stack;
+  position: absolute;
+  left: 0px;
+  top: 100%;
+  display: none;
+}
+
+
+/* select options style node menu
+.nodeMenu  {
   position: absolute;
   top: 100%;
   left: 0px;
   z-index: 1000;
   display: none;
-  min-width: 200px;
-  padding: 5px 10px;
+  padding: 1px 7px;
   font-size: 14px;
   text-align: left;
   list-style: none;
   background-color: white;
-  box-shadow: 0 6px 12px rgba(0,0,0,.175)
+  box-shadow: 0 6px 12px rgba(0,0,0,.175);
+  -webkit-appearance: none;
+  -webkit-border-radius: 0px; 
+  border-radius: 0px; 
+   -moz-appearance:    none;
+   appearance:         none;   
+   -webkit-border-radius: 0;  // Safari 3-4, iOS 1-3.2, Android 1.6- 
+   -moz-border-radius: 0;  // Firefox 1-3.6 
+   border-radius: 0;  // Opera 10.5, IE 9, Safari 5, Chrome, Firefox 4, iOS 4, Android 2.1+ 
+}
+*/
+
+.senseMenuContainer {
+  @extend .menuContainer;
+}
+
+.senseMenu  {
+  cursor: pointer;
+  z-index: 1000;
+  min-width: 200px;
+  margin: 0px;
+  list-style: none;
+  border: $medium-light-gray-border;
+  background-color: white;
+  -webkit-padding-start: 0px;
+  -webkit-padding-end: 0px;
+  -webkit-margin-before: 0px;
+  -webkit-margin-after: 0px;
+  -webkit-margin-start: 0px;
+  -webkit-margin-end: 0px;
+
+  li {
+    padding: 3px 10px 3px 10px;
+    min-width: 200px;
+  }
+
+  box-shadow: $shadow-stack;
+  position: absolute;
+  flex-direction: column;
+  top:32px;
+  left: 0px;
+  display: none;
+}
+
+.senseMenuItem {
+  z-index: 1000;
+}
+
+.itemText {
+  color: black;
+  margin-right: 5px;
+}
+
+.itemHint {
+  color: $medium-gray;
+  margin-right: 5px;
+}
+
+.itemTextSelected {
+  @extend .itemText;
+  color: white;
+}
+
+.itemHintSelected {
+  @extend .itemHint;
+  color: black;
+}
+
+.senseMenuItemSelected {
+  @extend .senseMenuItem;
+  background-color: $deep-blue;
 }
 
 .textArea  {
-  margin-top:5px;
-  margin-bottom:5px;
-  border: #E1E1E1 1px solid;
+  border: $medium-light-gray-border;
+  //border: #FFF 1px solid;
   overflow:hidden;
-  padding: 3px;
   resize:none;
-  height:24px;
-  width:500px;
+  width: 500px;
+  height: 26px;
+  padding: 2px 7px 0px 7px;
+  line-height: 26px;
   background-color:rgba(255,255,255,0.0);
 }
 
 .textArea:focus {
   background-color: white !important;
-  outline: #4485F6 2px solid;
+  outline: $deep-blue-border;
 }
 
 .textArea:blur {
@@ -135,16 +290,220 @@ div#nodeIcons:hover span#menuIcon {
   outline: none
 }
 
-.conceptName {
-  width: 150px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.ghostTextArea {
+  color: $deep-blue;
 }
 
-.viewTitle {
-  font-size: 15px;
+.conceptName {
+  width: 150px;
+  @extend .ellipses;
+}
+
+.docTitleContainer {
+  margin-bottom: 15px;
+  margin-left: 55px;
+  margin-right: 55px;
+  border-bottom: $medium-light-gray-border;
+  height: 25px;
+}
+
+.docTitle {
+  font-weight: bold;
+}
+
+.docTitleInput {
+  @extend .docTitle;
+  border: $medium-light-gray-border;
+  padding: 2px 2px;
+  margin: -3px 0px 0px -3px;
+  width: 400px;
+  display: none;
+}
+
+.docTitleInput:focus {
+  background-color: white !important;
+  outline: $deep-blue-border;
+}
+
+.docTitleInput:blur {
+  background-color: rgba(255,255,255,0.0) !important;
+  outline: none
+}
+
+
+.docViewHeader {
   font-weight: bold;
   margin-bottom: 8px;
-  margin-left: 18px;
+  border-bottom: $medium-light-gray-border;
+}
+
+.stdButton {
+  margin-top: 5px;
+}
+
+.viewHeader {
+  @extend .docViewHeader;
+  margin-top: 40px;
+}
+
+.docViewContainer {
+  margin-bottom: 5px;
+}
+
+.queryViewHeader {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  flex-direction: row;
+  cursor: default;
+  padding: 0px 7px;
+  margin: 0px 6px;
+  border-bottom: $medium-light-gray-border;
+}
+
+.queryViewBody {
+  padding: 15px 10px 15px 10px;
+  margin: 0px 6px;
+}
+
+.showLine {
+  display: flex;
+  flex-direction: row;
+  margin: 0px 0px 10px 0px;
+}
+
+.showMenuContainer {
+}
+
+$showSelect1Width: 170px;
+$showSelect2Width: 250px;
+
+.showSelect1  {
+  min-width: $showSelect1Width;
+  border-radius: 0px;
+}
+
+.showSelect2  {
+  min-width: $showSelect2Width;
+  border-radius: 0px;
+}
+
+.Select-control {
+  border: $medium-light-gray-border;
+  border-radius: 0px;
+  color: black;
+  height: 30px;
+
+  .Select-placeholder {
+    line-height: 28px;
+  }
+
+  .Select-value {
+    line-height: 28px !important;
+
+    .Select-value-label {
+      line-height: 28px;
+    }
+  }
+
+  .Select-input {
+    margin-top: -3px;
+    height: 28px;
+  }
+
+}
+
+.Select-option {
+  height: 28px;
+  padding-top: 5px;
+  width: $showSelect2Width - 20px;
+  @extend .ellipses;
+}
+
+.Select-option.is-selected {
+  background-color: $light-blue;
+  color: black;
+}
+
+.Select-option.is-focused {
+  background-color: $deep-blue;
+  color: white;  
+}
+
+.Select-value-label {
+  border-radius: 0px;
+  color: black;
+}
+
+.Select-menu-outer {
+  border-radius: 0px;
+}
+
+.defineQueryRow {
+  background-color: $medium-light-gray;
+  height: 28px;
+  width: $showSelect1Width + $showSelect2Width;
+  display:flex;
+  align-items: center;
+  padding-left: 10px;
+  cursor: pointer;
+}
+
+.defineQuery {
+  color: $medium-dark-gray;
+}
+
+.plusCircle {
+  color: white;
+  font: 15px FontAwesome;
+}
+
+.removeCircle {
+  color: $medium-gray;
+  cursor: pointer;
+  align-self: center;
+  margin-left: 8px;
+  font: 17px FontAwesome;  
+}
+
+.nonModalDialog {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+
+  top: 50%;
+  left: 50%;
+  margin-top: -150px; /* Negative half of height. */
+  margin-left: -350px; /* Negative half of width. */
+
+  border: $medium-light-gray-border;
+  background-color: white;
+  box-shadow: $shadow-stack;
+  z-index:1000;
+}
+
+//http://sass-lang.com/guide
+
+.nonModalDialogHeader {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  flex-direction: row;
+  cursor: default;
+  padding: 5px 7px;
+  margin: 0px 6px;
+  border-bottom: $medium-light-gray-border;
+}
+
+.nonModalDialogTitle {
+}
+
+.closeWindowIcon {
+  color: $medium-gray;
+}
+
+.nonModalDialogBody {
+  padding: 15px 10px 15px 10px;
+  margin: 0px 6px;
 }
